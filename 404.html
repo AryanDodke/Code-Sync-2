@@ -4,5 +4,11 @@
   <head>
     <meta http-equiv="refresh" content="0; url=/" />
   </head>
-  <body></body>
+  <body><script>
+    // Redirect all non-file requests to index.html (SPA fallback)
+    if (!location.pathname.includes('.') && location.pathname !== '/404.html') {
+      location.replace('/?redirect=' + encodeURIComponent(location.pathname));
+    }
+  </script>
+  </body>
 </html>
