@@ -3,6 +3,7 @@
     "private": true,
     "version": "0.0.0",
     "type": "module",
+    "homepage": "https://aryandodke.github.io/Code-Sync-2",
     "scripts": {
         "dev": "vite",
         "build": "tsc && vite build",
@@ -61,6 +62,5 @@
         "ts-node": "^10.9.2",
         "typescript": "^5.4.5",
         "vite": "^6.2.2"
-    },
-    "homepage": "https://aryandodke.github.io/Code-Sync-2"
+    }
 }
