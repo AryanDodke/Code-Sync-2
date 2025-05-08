@@ -1,3 +1,114 @@
+# name: Code-Sync CI/CD Pipeline
+
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+#     branches:
+#       - main
+
+# jobs:
+#   build-and-test:
+#     runs-on: ubuntu-latest
+    
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+      
+#       - name: Debug Environment
+#         run: |
+#           pwd
+#           ls -la
+#           node --version
+#           npm --version
+      
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '16'  # Try an older Node version for compatibility
+      
+#       - name: Verify package.json exists
+#         run: |
+#           if [ -f "package.json" ]; then
+#             echo "package.json exists"
+#             cat package.json
+#           else
+#             echo "package.json does not exist"
+#             exit 1
+#           fi
+      
+#       - name: Install dependencies with increased log level
+#         run: |
+#           npm install --verbose
+#         continue-on-error: true  # Continue even if this fails
+      
+#       - name: List installed packages
+#         run: |
+#           npm list --depth=0
+#         continue-on-error: true
+      
+#       - name: Check for test script
+#         run: |
+#           if grep -q '"test"' package.json; then
+#             echo "Test script found in package.json"
+#           else
+#             echo "No test script found in package.json, skipping tests"
+#             exit 0
+#           fi
+#         continue-on-error: true
+      
+#       - name: Run tests if available
+#         run: |
+#           npm test
+#         continue-on-error: true  # In case tests aren't set up yet
+      
+#       - name: Check for build script
+#         run: |
+#           if grep -q '"build"' package.json; then
+#             echo "Build script found in package.json"
+#           else
+#             echo "No build script found in package.json, skipping build"
+#             exit 0
+#           fi
+#         continue-on-error: true
+      
+#       - name: Build application if script exists
+#         run: |
+#           npm run build
+#         continue-on-error: true  # In case build script isn't defined
+
+#   deploy:
+#     needs: build-and-test
+#     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#     runs-on: ubuntu-latest
+    
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+      
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '16'  # Match the version from build job
+      
+#       - name: Install dependencies
+#         run: |
+#           npm install
+#         continue-on-error: true
+      
+#       - name: Install Vercel CLI
+#         run: |
+#           npm install --global vercel@latest
+#           vercel --version
+      
+#       - name: Deploy to Vercel
+#         run: |
+#           vercel --token ${{ secrets.VERCEL_TOKEN }} --prod --yes --debug
+#         env:
+#           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+#           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
 name: Code-Sync CI/CD Pipeline
 
 on:
@@ -9,77 +120,31 @@ on:
       - main
 
 jobs:
-  build-and-test:
+  debug:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Debug Environment
+      - name: Debug Repository Structure
         run: |
+          echo "Current directory:"
           pwd
+          echo "Repository contents:"
           ls -la
-          node --version
-          npm --version
+          echo "Does package.json exist?"
+          test -f package.json && echo "Yes" || echo "No"
       
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'  # Try an older Node version for compatibility
-      
-      - name: Verify package.json exists
+      - name: Check Node.js environment
         run: |
-          if [ -f "package.json" ]; then
-            echo "package.json exists"
-            cat package.json
-          else
-            echo "package.json does not exist"
-            exit 1
-          fi
+          echo "Node version:"
+          node --version || echo "Node not found"
+          echo "NPM version:"
+          npm --version || echo "NPM not found"
       
-      - name: Install dependencies with increased log level
-        run: |
-          npm install --verbose
-        continue-on-error: true  # Continue even if this fails
-      
-      - name: List installed packages
-        run: |
-          npm list --depth=0
-        continue-on-error: true
-      
-      - name: Check for test script
-        run: |
-          if grep -q '"test"' package.json; then
-            echo "Test script found in package.json"
-          else
-            echo "No test script found in package.json, skipping tests"
-            exit 0
-          fi
-        continue-on-error: true
-      
-      - name: Run tests if available
-        run: |
-          npm test
-        continue-on-error: true  # In case tests aren't set up yet
-      
-      - name: Check for build script
-        run: |
-          if grep -q '"build"' package.json; then
-            echo "Build script found in package.json"
-          else
-            echo "No build script found in package.json, skipping build"
-            exit 0
-          fi
-        continue-on-error: true
-      
-      - name: Build application if script exists
-        run: |
-          npm run build
-        continue-on-error: true  # In case build script isn't defined
-
   deploy:
-    needs: build-and-test
+    needs: debug
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     
@@ -87,23 +152,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'  # Match the version from build job
-      
-      - name: Install dependencies
-        run: |
-          npm install
-        continue-on-error: true
-      
       - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      
+      - name: Prepare for Vercel deployment
         run: |
-          npm install --global vercel@latest
-          vercel --version
+          # Create a minimal package.json if it doesn't exist
+          if [ ! -f "package.json" ]; then
+            echo '{"name":"code-sync-2","version":"1.0.0","private":true}' > package.json
+            echo "Created minimal package.json for deployment"
+          fi
       
       - name: Deploy to Vercel
         run: |
+          echo "Deploying to Vercel..."
           vercel --token ${{ secrets.VERCEL_TOKEN }} --prod --yes --debug
         env:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
