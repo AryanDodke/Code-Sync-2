@@ -1,0 +1,75 @@
+name: Code-Sync CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+      
+      - name: Run tests
+        run: |
+          npm test
+        # If your tests need environment variables, add them here
+        # env:
+        #   TEST_ENV_VAR: ${{ secrets.TEST_ENV_VAR }}
+      
+      - name: Run linting
+        run: |
+          npm run lint
+        # If you don't have a lint script, you can add one to your package.json
+        # or remove this step
+        continue-on-error: true  # Makes linting warnings non-blocking
+      
+      - name: Build application
+        run: |
+          npm run build
+        # This assumes you have a build script in your package.json
+
+  deploy:
+    needs: build-and-test  # Only deploy if the build and tests pass
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'  # Only deploy on push to main, not on PRs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+      
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      
+      - name: Deploy to Vercel
+        run: |
+          vercel --token ${{ secrets.VERCEL_TOKEN }} --prod --yes
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
